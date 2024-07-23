@@ -1,0 +1,174 @@
+---
+title: "Changelog Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+# Load required libraries
+library(flexdashboard)
+library(DT)
+library(ggplot2)
+library(gh)
+library(dplyr)
+library(purrr)
+library(lubridate)
+library(shiny)
+
+# Function to get all tags in a repository
+get_all_tags <- function(repo) {
+  owner <- strsplit(repo, "/")[[1]][1]
+  repo_name <- strsplit(repo, "/")[[1]][2]
+  
+  tags <- gh("/repos/:owner/:repo/tags", owner = owner, repo = repo_name, .limit = Inf)
+  map_chr(tags, "name")
+}
+
+# Function to get commits between two tags
+get_commits_between_tags <- function(repo, base_tag, compare_tag) {
+  owner <- strsplit(repo, "/")[[1]][1]
+  repo_name <- strsplit(repo, "/")[[1]][2]
+  
+  base_sha <- gh("/repos/:owner/:repo/git/ref/tags/:tag",
+                 owner = owner, repo = repo_name, tag = base_tag)$object$sha
+  compare_sha <- gh("/repos/:owner/:repo/git/ref/tags/:tag",
+                    owner = owner, repo = repo_name, tag = compare_tag)$object$sha
+  
+  commits <- gh("/repos/:owner/:repo/compare/:base...:head",
+                owner = owner, repo = repo_name, base = base_sha, head = compare_sha)
+  
+  map_df(commits$commits, function(commit) {
+    message_header <- strsplit(commit$commit$message, "\n")[[1]]
+
+    list(
+      sha = commit$sha,
+      message = message_header[1],
+      author = commit$commit$author$name,
+      full_message = commit$commit$message,
+      date = as.POSIXct(commit$commit$author$date, format = "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+    )
+  })
+}
+
+# Set repository
+repo <- "posit-dev/positron"
+
+# Fetch all tags
+all_tags <- get_all_tags(repo)
+
+# Initialize reactive values
+rv <- reactiveValues(
+  base_tag = all_tags[1],
+  compare_tag = all_tags[length(all_tags)],
+  commits = NULL
+)
+
+# Update commits when tags change
+observe({
+  rv$commits <- get_commits_between_tags(repo, rv$base_tag, rv$compare_tag)
+})
+```
+
+Inputs {data-height=150}
+-----------------------------------------------------------------------
+
+```{r}
+selectInput("base_tag", "Base Tag:", choices = all_tags, selected = "2024.06.1-54")
+
+selectInput("compare_tag", "Compare Tag:", choices = all_tags)
+```
+```{r}
+
+observeEvent(input$base_tag, {
+  rv$base_tag <- input$base_tag
+})
+
+observeEvent(input$compare_tag, {
+  rv$compare_tag <- input$compare_tag
+})
+```
+
+
+
+Row
+-------------------------------------
+
+
+### Commit Statistics
+
+```{r}
+renderValueBox({
+  valueBox(nrow(rv$commits), "Total Commits", icon = "fa-code-commit")
+})
+```
+
+
+### Date Range
+
+
+```{r}
+renderValueBox({
+  valueBox(
+    paste(
+      format(min(rv$commits$date), "%Y-%m-%d"),
+      "to",
+      format(max(rv$commits$date), "%Y-%m-%d")
+    ),
+    "Commit Date Range",
+    icon = "fa-calendar"
+  )
+})
+```
+
+Row
+-------------------------------------
+
+### Commits over time
+
+```{r}
+renderDataTable({
+  datatable(
+    rv$commits %>%
+      select(Date = date, Author = author, Message = message) %>%
+      arrange(desc(Date)),
+    options = list(pageLength = 10, autoWidth = TRUE),
+    rownames = FALSE
+  )
+})
+
+```
+
+Row 
+-------------------------------------
+
+### Author
+
+```{r}
+renderPlot({
+  rv$commits %>%
+    count(author) %>%
+    ggplot(aes(x = reorder(author, n), y = n)) +
+    geom_col() +
+    coord_flip() +
+    labs(x = "Author", y = "Number of Commits", title = "Commits by Author")
+})
+```
+
+### Commits by Time
+
+
+```{r}
+renderPlot({
+  rv$commits %>%
+    mutate(date = as.Date(date)) %>%
+    count(date) %>%
+    ggplot(aes(x = date, y = n)) +
+    geom_line() +
+    geom_point() +
+    labs(x = "Date", y = "Number of Commits", title = "Commits Over Time")
+})
+```
+
