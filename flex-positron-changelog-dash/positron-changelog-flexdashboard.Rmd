@@ -79,8 +79,6 @@ Inputs {data-height=150}
 selectInput("base_tag", "Base Tag:", choices = all_tags, selected = "2024.06.1-54")
 
 selectInput("compare_tag", "Compare Tag:", choices = all_tags)
-```
-```{r}
 
 observeEvent(input$base_tag, {
   rv$base_tag <- input$base_tag
@@ -132,8 +130,9 @@ Row
 renderDataTable({
   datatable(
     rv$commits %>%
-      select(Date = date, Author = author, Message = message) %>%
-      arrange(desc(Date)),
+      select(date, message) %>%
+      arrange(desc(date)) %>%
+      select(message),
     options = list(pageLength = 10, autoWidth = TRUE),
     rownames = FALSE
   )
