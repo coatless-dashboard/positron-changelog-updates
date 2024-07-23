@@ -21,16 +21,15 @@ The dashboard apps are written in two flavors:
 - [{bslib}](https://rstudio.github.io/bslib/): A Shiny app that uses the new
   Bootstrap 5 theming engine to create a dashboard.
   
-  
 <table>
 <tr><th>{flexdashboard}</th><th>{bslib}</th></tr>
 <tr><td>
 
-[![{flexdashboard} Dashboard Preview](https://github.com/coatless-dashboard/positron-changelog-updates/tree/main/images/flexdashboard-positron-changelog-dashboard.png)](flex-positron-changelog-dash/)
+[![{flexdashboard} Dashboard Preview](https://github.com/user-attachments/assets/de19bca4-7554-43a7-ac61-e6a0f55afb2d)](flex-positron-changelog-dash/)
 
 </td><td>
 
-[![{bslib} Dashboard Preview](https://github.com/coatless-dashboard/positron-changelog-updates/tree/main/images/bslib-positron-changelog-dashboard.png)](bslib-positron-changelog-dash/)
+[![{bslib} Dashboard Preview](https://github.com/user-attachments/assets/9ad05301-b54c-4d0d-86ae-70f3a1eb54f2)](bslib-positron-changelog-dash/)
 
 </td></tr>
 </table>
